@@ -53,7 +53,7 @@ rule format_snv:
         S3.remote(prefix + "processed/SNV.csv")
     input: 
         S3.remote(prefix + "download/annot_WES.txt"),
-        expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients)
+        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients))
     shell:
         """
         Rscript scripts/Format_SNV.R \
@@ -63,12 +63,11 @@ rule format_snv:
 
 rule download_annot_vcf:
     output:
-        expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients)
-    input:
+        S3.remote(prefix + "download/annot_vcf/{patient}.txt")
+    input: 
         S3.remote(prefix + "download/annot_WES.txt")
-    run:
-        for p in patients:
-            shell("wget {data_source}annot_vcf/{p}.txt -O {prefix}download/annot_vcf/{p}.txt")
+    shell:
+        "wget {data_source}annot_vcf/{wildcards.patient}.txt -O {prefix}download/annot_vcf/{wildcards.patient}.txt"
 
 rule download_data:
     output:
