@@ -56,7 +56,7 @@ rule format_snv:
         S3.remote(prefix + "download/annot_vcf.zip")
     shell:
         """
-        unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip && \
+        unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip
         Rscript scripts/Format_SNV.R \
         {prefix}download \
         {prefix}processed \
