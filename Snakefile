@@ -53,7 +53,7 @@ rule format_snv:
         S3.remote(prefix + "processed/SNV.csv")
     input: 
         S3.remote(prefix + "download/annot_WES.txt"),
-        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients.sort()))
+        expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients)
     shell:
         """
         Rscript scripts/Format_SNV.R \
@@ -63,7 +63,7 @@ rule format_snv:
 
 rule download_annot_vcf:
     output:
-        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients.sort()))
+        expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients)
     input:
         S3.remote(prefix + "download/annot_WES.txt")
     run:
