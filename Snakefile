@@ -53,30 +53,25 @@ rule format_snv:
         S3.remote(prefix + "processed/SNV.csv")
     input: 
         S3.remote(prefix + "download/annot_WES.txt"),
-        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients))
+        S3.remote(prefix + "download/annot_vcf.zip")
     shell:
         """
+        unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip && \
         Rscript scripts/Format_SNV.R \
         {prefix}download \
         {prefix}processed \
         """
 
-rule download_annot_vcf:
-    output:
-        S3.remote(prefix + "download/annot_vcf/{patient}.txt")
-    input: 
-        S3.remote(prefix + "download/annot_WES.txt")
-    shell:
-        "wget {data_source}annot_vcf/{wildcards.patient}.txt -O {prefix}download/annot_vcf/{wildcards.patient}.txt"
-
 rule download_data:
     output:
         S3.remote(prefix + "download/annot_WES.txt"),
         S3.remote(prefix + "download/gas_korean_clin_data.csv"),
-        S3.remote(prefix + "download/gas_korean_exp_data.csv")
+        S3.remote(prefix + "download/gas_korean_exp_data.csv"),
+        S3.remote(prefix + "download/annot_vcf.zip")
     shell:
         """
         wget {data_source}annot_WES.txt -O {prefix}download/annot_WES.txt
         wget {data_source}gas_korean_clin_data.csv -O {prefix}download/gas_korean_clin_data.csv
         wget {data_source}gas_korean_exp_data.csv -O {prefix}download/gas_korean_exp_data.csv
+        wget {data_source}annot_vcf.zip -O {prefix}download/annot_vcf.zip
         """ 
