@@ -54,6 +54,8 @@ rule format_snv:
     input: 
         S3.remote(prefix + "download/annot_WES.txt"),
         S3.remote(prefix + "download/annot_vcf.zip")
+    resources:
+        mem_mb=3000
     shell:
         """
         unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip
