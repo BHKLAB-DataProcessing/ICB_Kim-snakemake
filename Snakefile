@@ -6,9 +6,11 @@ S3 = S3RemoteProvider(
     host=config["host"],
     stay_on_remote=False
 )
+
 prefix = config["prefix"]
 filename = config["filename"]
 data_source  = "https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Kim-data/main/"
+patients = pd.read_csv(data_source + "annot_WES.txt", sep="\t", header=0)["patient"].values
 
 rule get_MultiAssayExp:
     output:
@@ -49,9 +51,9 @@ rule format_data:
 rule format_snv:
     output:
         S3.remote(prefix + "processed/SNV.csv")
-    input:
+    input: 
         S3.remote(prefix + "download/annot_WES.txt"),
-        dynamic(S3.remote(prefix + "download/annot_vcf/{p}.txt"))
+        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients.sort()))
     shell:
         """
         Rscript scripts/Format_SNV.R \
@@ -61,14 +63,12 @@ rule format_snv:
 
 rule download_annot_vcf:
     output:
-        dynamic(S3.remote(prefix + "download/annot_vcf/{p}.txt"))
+        S3.remote(expand(prefix + "download/annot_vcf/{patient}.txt", patient=patients.sort()))
     input:
         S3.remote(prefix + "download/annot_WES.txt")
     run:
-        annot_WES = pd.read_csv(S3.remote(prefix + "download/annot_WES.txt"), sep="\t", header=0)
-        patients = annot_WES["patient"]
-        for patient in patients:
-            shell("wget {data_source}/annot_vcf/{patient}.txt -O {prefix}download/annot_vcf/{patient}.txt")
+        for p in patients:
+            shell("wget {data_source}annot_vcf/{p}.txt -O {prefix}download/annot_vcf/{p}.txt")
 
 rule download_data:
     output:
