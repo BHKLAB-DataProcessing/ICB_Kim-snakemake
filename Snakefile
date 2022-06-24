@@ -21,6 +21,9 @@ rule get_MultiAssayExp:
         S3.remote(prefix + "processed/SNV.csv"),
         S3.remote(prefix + "processed/cased_sequenced.csv"),
         S3.remote(prefix + "annotation/Gencode.v40.annotation.RData")
+    resources:
+        mem_mb=3000,
+        disk_mb=3000
     shell:
         """
         Rscript -e \
