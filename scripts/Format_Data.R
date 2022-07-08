@@ -5,6 +5,7 @@ input_dir <- args[1]
 output_dir <- args[2]
 
 source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/Get_Response.R")
+source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/format_clin_data.R")
 
 #############################################################################
 #############################################################################
@@ -17,10 +18,12 @@ expr = expr[ , -1 ]
 #############################################################################
 ## Get Clinical data
 
-clin = read.table( file.path(input_dir, "gas_korean_clin_data.csv") , sep="," , header=TRUE , stringsAsFactors = FALSE , dec=",")
-clin = clin[ clin[ , "treatment" ] %in% "pre" , ]
+clin_original = read.table( file.path(input_dir, "gas_korean_clin_data.csv") , sep="," , header=TRUE , stringsAsFactors = FALSE , dec=",")
+clin_original = clin_original[ clin_original[ , "treatment" ] %in% "pre" , ]
+rownames(clin_original) <- clin_original$X
 
-clin = as.data.frame( cbind( clin[ , "X" ] , clin[ , "response" ] , "PD-1/PD-L1" , "Gastric" , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA ) )
+selected_cols <- c("X", "response")
+clin = as.data.frame( cbind( clin_original[ , selected_cols ] , "PD-1/PD-L1" , "Gastric" , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA , NA ) )
 colnames(clin) = c( "patient" , "recist" , "drug_type" , "primary" , "age" , "histo" , "response" , "pfs" ,"os" , "t.pfs" , "t.os" , "stage" , "sex" , "response.other.info" , "dna" , "rna" )
 rownames(clin) = clin$patient
 
@@ -36,6 +39,9 @@ clin = clin[ , c("patient" , "sex" , "age" , "primary" , "histo" , "stage" , "re
 
 patient = intersect( colnames(expr) , rownames(clin) )
 clin = clin[ patient , ]
+clin_original <- clin_original[ patient, ]
+clin <- format_clin_data(clin_original, 'X', selected_cols, clin)
+
 expr =  expr[ , patient ]
 
 snv = read.csv( file.path(output_dir, "SNV.csv") , sep=";" , stringsAsFactors=FALSE )
