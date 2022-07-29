@@ -3,14 +3,18 @@ library(data.table)
 args <- commandArgs(trailingOnly = TRUE)
 input_dir <- args[1]
 output_dir <- args[2]
+annot_dir <- args[3]
 
 source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/Get_Response.R")
 source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/format_clin_data.R")
 
 #############################################################################
 #############################################################################
+load(file.path(annot_dir, "Gencode.v40.annotation.RData"))
+expr = read.table( file.path(input_dir, "EXPR.tsv") , sep="\t" , header=TRUE , stringsAsFactors = FALSE )
+expr <- format_transcript2gene(tx2gene, expr)
+saveRDS(expr, file.path(input_dir, 'expr.rds'))
 
-expr = read.table( file.path(input_dir, "gas_korean_exp_data.csv") , sep="," , header=TRUE , stringsAsFactors = FALSE )
 rownames(expr) = expr[ , 1 ]
 expr = expr[ , -1 ]
 
