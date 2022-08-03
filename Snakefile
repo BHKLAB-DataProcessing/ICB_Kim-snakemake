@@ -9,18 +9,19 @@ S3 = S3RemoteProvider(
 
 prefix = config["prefix"]
 filename = config["filename"]
-data_source  = "https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Kim-data/main/"
-patients = pd.read_csv(data_source + "annot_WES.txt", sep="\t", header=0)["patient"].values
 
 rule get_MultiAssayExp:
-    output:
-        S3.remote(prefix + filename)
     input:
         S3.remote(prefix + "processed/CLIN.csv"),
-        S3.remote(prefix + "processed/EXPR.csv"),
-        S3.remote(prefix + "processed/SNV.csv"),
+        S3.remote(prefix + "processed/EXPR_gene_tpm.csv"),
+        S3.remote(prefix + "processed/EXPR_gene_counts.csv"),
+        S3.remote(prefix + "processed/EXPR_isoform_tpm.csv"),
+        S3.remote(prefix + "processed/EXPR_isoform_counts.csv"),
+        # S3.remote(prefix + "processed/SNV.csv"),
         S3.remote(prefix + "processed/cased_sequenced.csv"),
         S3.remote(prefix + "annotation/Gencode.v40.annotation.RData")
+    output:
+        S3.remote(prefix + filename)
     resources:
         mem_mb=3000,
         disk_mb=3000
@@ -31,10 +32,58 @@ rule get_MultiAssayExp:
         load(paste0("{prefix}", "annotation/Gencode.v40.annotation.RData"))
         source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/get_MultiAssayExp.R");
         saveRDS(
-            get_MultiAssayExp(study = "Kim", input_dir = paste0("{prefix}", "processed")), 
+            get_MultiAssayExp(study = "Kim", input_dir = paste0("{prefix}", "processed"), expr_with_counts_isoforms=TRUE), 
             "{prefix}{filename}"
         );
         '
+        """
+
+rule format_data:
+    input:
+        # S3.remote(prefix + "processed/SNV.csv"),
+        S3.remote(prefix + "download/gas_korean_cli_data.csv"),
+        S3.remote(prefix + "download/expr_list.rds")
+    output:
+        S3.remote(prefix + "processed/cased_sequenced.csv"),
+        S3.remote(prefix + "processed/CLIN.csv"),
+        S3.remote(prefix + "processed/EXPR_gene_tpm.csv"),
+        S3.remote(prefix + "processed/EXPR_gene_counts.csv"),
+        S3.remote(prefix + "processed/EXPR_isoform_tpm.csv"),
+        S3.remote(prefix + "processed/EXPR_isoform_counts.csv")
+    shell:
+        """
+        Rscript scripts/Format_Data.R \
+        {prefix}download \
+        {prefix}processed \
+        """
+
+# rule format_snv:
+#     output:
+#         S3.remote(prefix + "processed/SNV.csv")
+#     input: 
+#         S3.remote(prefix + "download/annot_WES.txt"),
+#         S3.remote(prefix + "download/annot_vcf.zip")
+#     resources:
+#         mem_mb=3000
+#     shell:
+#         """
+#         unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip
+#         Rscript scripts/Format_SNV.R \
+#         {prefix}download \
+#         {prefix}processed \
+#         """
+
+rule format_downloaded_data:
+    input:
+        S3.remote(prefix + "download/Kim_kallisto.zip"),
+        S3.remote(prefix + "annotation/Gencode.v40.annotation.RData")
+    output:
+        S3.remote(prefix + "download/expr_list.rds")
+    shell:
+        """
+        Rscript scripts/format_downloaded_data.R \
+        {prefix}download \
+        {prefix}annotation 
         """
 
 rule download_annotation:
@@ -45,48 +94,12 @@ rule download_annotation:
         wget https://github.com/BHKLAB-Pachyderm/Annotations/blob/master/Gencode.v40.annotation.RData?raw=true -O {prefix}annotation/Gencode.v40.annotation.RData 
         """
 
-rule format_data:
-    output:
-        S3.remote(prefix + "processed/cased_sequenced.csv"),
-        S3.remote(prefix + "processed/CLIN.csv"),
-        S3.remote(prefix + "processed/EXPR.csv")
-    input:
-        S3.remote(prefix + "processed/SNV.csv"),
-        S3.remote(prefix + "download/gas_korean_clin_data.csv"),
-        S3.remote(prefix + "download/gas_korean_exp_data.csv")
-    shell:
-        """
-        Rscript scripts/Format_Data.R \
-        {prefix}download \
-        {prefix}processed \
-        """
-
-rule format_snv:
-    output:
-        S3.remote(prefix + "processed/SNV.csv")
-    input: 
-        S3.remote(prefix + "download/annot_WES.txt"),
-        S3.remote(prefix + "download/annot_vcf.zip")
-    resources:
-        mem_mb=3000
-    shell:
-        """
-        unzip -d {prefix}download/ {prefix}/download/annot_vcf.zip
-        Rscript scripts/Format_SNV.R \
-        {prefix}download \
-        {prefix}processed \
-        """
-
 rule download_data:
     output:
-        S3.remote(prefix + "download/annot_WES.txt"),
-        S3.remote(prefix + "download/gas_korean_clin_data.csv"),
-        S3.remote(prefix + "download/gas_korean_exp_data.csv"),
-        S3.remote(prefix + "download/annot_vcf.zip")
+        S3.remote(prefix + "download/Kim_kallisto.zip"),
+        S3.remote(prefix + "download/gas_korean_cli_data.csv")
     shell:
         """
-        wget {data_source}annot_WES.txt -O {prefix}download/annot_WES.txt
-        wget {data_source}gas_korean_clin_data.csv -O {prefix}download/gas_korean_clin_data.csv
-        wget {data_source}gas_korean_exp_data.csv -O {prefix}download/gas_korean_exp_data.csv
-        wget {data_source}annot_vcf.zip -O {prefix}download/annot_vcf.zip
+        wget -O {prefix}download/gas_korean_cli_data.csv https://github.com/xmuyulab/ims_gene_signature/raw/main/data/gas_korean_cli_data.csv
+        wget -O {prefix}download/Kim_kallisto.zip https://github.com/BHKLAB-Pachyderm/ICB_Kim-data/raw/main/Kim_kallisto.zip
         """ 
