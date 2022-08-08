@@ -101,5 +101,5 @@ rule download_data:
     shell:
         """
         wget -O {prefix}download/gas_korean_cli_data.csv https://github.com/xmuyulab/ims_gene_signature/raw/main/data/gas_korean_cli_data.csv
-        wget -O {prefix}download/Kim_kallisto.zip https://github.com/BHKLAB-Pachyderm/ICB_Kim-data/raw/main/Kim_kallisto.zip
+        wget -O {prefix}download/Kim_kallisto.zip https://zenodo.org/record/6968411/files/Kim_kallisto.zip?download=1
         """ 
