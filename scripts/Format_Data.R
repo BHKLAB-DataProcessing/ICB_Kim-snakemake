@@ -1,5 +1,6 @@
 library(data.table)
 library(stringr)
+library(tibble)
 
 args <- commandArgs(trailingOnly = TRUE)
 input_dir <- args[1]
@@ -8,6 +9,8 @@ annot_dir <- args[3]
 
 source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/Get_Response.R")
 source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/format_clin_data.R")
+source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/annotate_tissue.R")
+source("https://raw.githubusercontent.com/BHKLAB-Pachyderm/ICB_Common/main/code/annotate_drug.R")
 
 ## Get Clinical data
 clin_original = read.table( file.path(input_dir, "gas_korean_cli_data.csv") , sep="," , header=TRUE , stringsAsFactors = FALSE , dec=",")
@@ -54,6 +57,13 @@ case = cbind( patient , 0 , 0 , 1 )
 colnames(case ) = c( "patient" , "snv" , "cna" , "expr" )
 rownames(case) = case[,1]
 # case[ snv_patient , "snv" ] = 0
+
+# Tissue and drug annotation
+annotation_tissue <- read.csv(file=file.path(annot_dir, 'curation_tissue.csv'))
+clin <- annotate_tissue(clin=clin, study='Kim', annotation_tissue=annotation_tissue, check_histo=FALSE)
+
+annotation_drug <- read.csv(file=file.path(annot_dir, 'curation_drug.csv'))
+clin <- add_column(clin, unique_drugid='', .after='unique_tissueid')
 
 write.table( case , file = file.path(output_dir, "cased_sequenced.csv") , sep = ";" , quote = FALSE , row.names = FALSE)
 write.table( clin , file = file.path(output_dir, "CLIN.csv") , sep = ";" , quote = FALSE , row.names = FALSE)
